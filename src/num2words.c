@@ -64,6 +64,7 @@ static const char* STR_TO = "to";
 static const char* STR_PAST = "past";
 static const char* STR_HALF = "half";
 static const char* STR_AFTER = "after";
+static const char* STR_OH = "oh";
 
 static size_t append_number(char* words, int num) {
   int tens_val = num / 10 % 10;
@@ -168,7 +169,8 @@ void minute_to_formal_words(int minutes, char *first_word, char *second_word) {
     return;
   }
   if (minutes < 10) {
-    strcat(first_word, ONES[minutes%10]);
+    strcat(first_word, STR_OH);
+    strcat(second_word, ONES[minutes%10]);
     return;
   }
   if (minutes > 10 && minutes < 20) {

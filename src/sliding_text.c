@@ -55,11 +55,11 @@ typedef struct {
 SlidingTextData *s_data;
 
 static void init_sliding_row(SlidingTextData *data, SlidingRow *row, GRect pos, GFont font,
-        int delay) {
+		GColor8 color, int delay) {
   row->label = text_layer_create(pos);
 
   text_layer_set_background_color(row->label, GColorClear);
-  text_layer_set_text_color(row->label, GColorWhite);
+  text_layer_set_text_color(row->label, color);
   if (font) {
     text_layer_set_font(row->label, font);
     row->unchanged_font = true;
@@ -174,7 +174,11 @@ static void animation_update(struct Animation *animation, const AnimationProgres
   }
 
   if (data->last_hour != t.tm_hour) {
-    hour_to_12h_word(t.tm_hour, rs->hours[rs->next_hours]);
+	if(clock_is_24h_style()) {
+		hour_to_24h_word(t.tm_hour, rs->hours[rs->next_hours]);
+	} else {
+		hour_to_12h_word(t.tm_hour, rs->hours[rs->next_hours]);
+    }
     slide_in_text(data, &data->rows[0], rs->hours[rs->next_hours]);
     rs->next_hours = rs->next_hours ? 0 : 1;
     data->last_hour = t.tm_hour;
@@ -229,13 +233,13 @@ static void handle_init() {
   Layer *window_layer = window_get_root_layer(data->window);
   GRect layer_frame = layer_get_frame(window_layer);
   const int16_t width = layer_frame.size.w;
-  init_sliding_row(data, &data->rows[0], GRect(0, 20, width, 60), data->bitham42_bold, 6);
+  init_sliding_row(data, &data->rows[0], GRect(0, 20, width, 60), data->bitham42_bold, GColorWhite, 6);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[0].label));
 
-  init_sliding_row(data, &data->rows[1], GRect(0, 56, width, 96), data->bitham42_light, 3);
+  init_sliding_row(data, &data->rows[1], GRect(0, 56, width, 96), data->bitham42_light, GColorBrilliantRose, 3);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[1].label));
 
-  init_sliding_row(data, &data->rows[2], GRect(0, 92, width, 132), data->bitham42_light, 0);
+  init_sliding_row(data, &data->rows[2], GRect(0, 92, width, 132), data->bitham42_light, GColorWhite, 0);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[2].label));
 
   GFont norm14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
