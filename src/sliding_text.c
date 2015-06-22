@@ -24,7 +24,7 @@ typedef struct {
 
 typedef struct {
   TextLayer *demo_label;
-  SlidingRow rows[3];
+  SlidingRow rows[4];
   int last_hour;
   int last_minute;
 
@@ -36,7 +36,8 @@ typedef struct {
 
   struct SlidingTextRenderState {
     // double buffered string storage
-    char hours[2][32];
+    char first_hours[2][32];
+    char second_hours[2][32];
     uint8_t next_hours;
     char first_minutes[2][32];
     char second_minutes[2][32];
@@ -157,31 +158,41 @@ static void animation_update(struct Animation *animation, const AnimationProgres
 
   bool something_changed = false;
 
-  if (data->last_minute != t.tm_min) {
-    something_changed = true;
-
-    minute_to_formal_words(t.tm_min, rs->first_minutes[rs->next_minutes], rs->second_minutes[rs->next_minutes]);
-    if(data->last_hour != t.tm_hour || t.tm_min <= 20
-       || t.tm_min/10 != data->last_minute/10) {
-      slide_in_text(data, &data->rows[1], rs->first_minutes[rs->next_minutes]);
-    } else {
-      // The tens line didn't change, so swap to the correct buffer but don't animate
-      text_layer_set_text(data->rows[1].label, rs->first_minutes[rs->next_minutes]);
-    }
-    slide_in_text(data, &data->rows[2], rs->second_minutes[rs->next_minutes]);
-    rs->next_minutes = rs->next_minutes ? 0 : 1;
-    data->last_minute = t.tm_min;
-  }
+  static int minutes_row;
 
   if (data->last_hour != t.tm_hour) {
 	if(clock_is_24h_style()) {
-		hour_to_24h_word(t.tm_hour, rs->hours[rs->next_hours]);
+		if(hour_to_24h_word_split(t.tm_hour, rs->first_hours[rs->next_hours], rs->second_hours[rs->next_hours])) {
+			slide_in_text(data, &data->rows[1], rs->second_hours[rs->next_hours]);
+			minutes_row = 2;
+		} else {
+			minutes_row = 1;
+		}
+
+		slide_in_text(data, &data->rows[0], rs->first_hours[rs->next_hours]);
 	} else {
-		hour_to_12h_word(t.tm_hour, rs->hours[rs->next_hours]);
+		hour_to_12h_word(t.tm_hour, rs->first_hours[rs->next_hours]);
+		slide_in_text(data, &data->rows[0], rs->first_hours[rs->next_hours]);
+		minutes_row = 1;
     }
-    slide_in_text(data, &data->rows[0], rs->hours[rs->next_hours]);
     rs->next_hours = rs->next_hours ? 0 : 1;
     data->last_hour = t.tm_hour;
+  }
+
+  if (data->last_minute != t.tm_min) {
+    something_changed = true;
+
+    minute_to_formal_words(t.tm_min, clock_is_24h_style(), rs->first_minutes[rs->next_minutes], rs->second_minutes[rs->next_minutes]);
+    if(data->last_hour != t.tm_hour || (t.tm_min <= 20 && t.tm_min >= 10)
+       || t.tm_min/10 != data->last_minute/10) {
+      slide_in_text(data, &data->rows[minutes_row], rs->first_minutes[rs->next_minutes]);
+    } else {
+      // The tens line didn't change, so swap to the correct buffer but don't animate
+      text_layer_set_text(data->rows[minutes_row].label, rs->first_minutes[rs->next_minutes]);
+    }
+    slide_in_text(data, &data->rows[minutes_row + 1], rs->second_minutes[rs->next_minutes]);
+    rs->next_minutes = rs->next_minutes ? 0 : 1;
+    data->last_minute = t.tm_min;
   }
 
   for (size_t i = 0; i < ARRAY_LENGTH(data->rows); ++i) {
@@ -233,14 +244,17 @@ static void handle_init() {
   Layer *window_layer = window_get_root_layer(data->window);
   GRect layer_frame = layer_get_frame(window_layer);
   const int16_t width = layer_frame.size.w;
-  init_sliding_row(data, &data->rows[0], GRect(0, 20, width, 60), data->bitham42_bold, GColorWhite, 6);
+
+  init_sliding_row(data, &data->rows[0], GRect(0, 0, width, 60), data->bitham42_bold, GColorWhite, 6);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[0].label));
 
-  init_sliding_row(data, &data->rows[1], GRect(0, 56, width, 96), data->bitham42_light, GColorBrilliantRose, 3);
+  init_sliding_row(data, &data->rows[1], GRect(0, 34, width, 96), data->bitham42_light, GColorBrilliantRose, 3);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[1].label));
 
-  init_sliding_row(data, &data->rows[2], GRect(0, 92, width, 132), data->bitham42_light, GColorWhite, 0);
+  init_sliding_row(data, &data->rows[2], GRect(0, 72, width, 132), data->bitham42_light, GColorWhite, 0);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[2].label));
+  init_sliding_row(data, &data->rows[3], GRect(0, 109, width, 132), data->bitham42_light, GColorWhite, 0);
+  layer_add_child(window_layer, text_layer_get_layer(data->rows[3].label));
 
   GFont norm14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
 

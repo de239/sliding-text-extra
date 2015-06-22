@@ -1,7 +1,9 @@
-#include "num2words.h"
-
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
+
+#include "num2words.h"
+
 
 static const char* const ONES[] = {
   "zero",
@@ -65,6 +67,7 @@ static const char* STR_PAST = "past";
 static const char* STR_HALF = "half";
 static const char* STR_AFTER = "after";
 static const char* STR_OH = "oh";
+static const char* STR_HUNDRED = "hundred";
 
 static size_t append_number(char* words, int num) {
   int tens_val = num / 10 % 10;
@@ -156,16 +159,19 @@ void time_to_common_words(int hours, int minutes, char *words) {
 
 
 // o'clock (0) and plain number words (10..)
-void minute_to_formal_words(int minutes, char *first_word, char *second_word) {
+void minute_to_formal_words(int minutes, bool hour24, char *first_word, char *second_word) {
   // PBL_ASSERT(minutes >= 0 && minutes < 60, "Invalid number of minutes");
 
   strcpy(first_word, "");
   strcpy(second_word, "");
 
-
   if (minutes == 0) {
-    strcat(first_word, STR_OH_TICK);
-    strcat(first_word, STR_CLOCK);
+	if(hour24) {
+      strcat(first_word, STR_HUNDRED);
+    } else {
+      strcat(first_word, STR_OH_TICK);
+      strcat(first_word, STR_CLOCK);
+	}
     return;
   }
   if (minutes < 10) {
@@ -209,4 +215,33 @@ void hour_to_24h_word(int hours, char *words) {
   strcpy(words, "");
 
   append_number(words, hours);
+}
+
+bool hour_to_24h_word_split(int hours, char *first_word, char *second_word) {
+  // PBL_ASSERT(hours >= 0 && hours < 24, "Invalid number of hours");
+
+  hours = hours % 24;
+
+  strcpy(first_word, "");
+  strcpy(second_word, "");
+
+  if (hours < 10) {
+    strcat(second_word, ONES[hours%10]);
+    return false;
+  }
+
+  if (hours > 10 && hours < 20) {
+    strcat(first_word, TEENS_SPLIT[(hours - 10) % 10][0]);
+    strcat(second_word, TEENS_SPLIT[(hours - 10) % 10][1]);
+    return true;
+  }
+
+  if (hours >= 20) {
+    strcat(first_word, TENS[hours / 20 + 1]);
+	if (hours % 20 > 0)
+		strcat(second_word, ONES[hours % 20]);
+    return true;
+  }
+
+  return true;
 }
