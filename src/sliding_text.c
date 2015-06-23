@@ -169,7 +169,11 @@ static void animation_update(struct Animation *animation, const AnimationProgres
 			minutes_row = 1;
 		}
 
-		slide_in_text(data, &data->rows[0], rs->first_hours[rs->next_hours]);
+		if((data->last_hour / 20) != (t.tm_hour / 20)) {
+		  slide_in_text(data, &data->rows[0], rs->first_hours[rs->next_hours]);
+		} else {
+		  text_layer_set_text(data->rows[0].label, rs->first_hours[rs->next_hours]);
+		}
 	} else {
 		hour_to_12h_word(t.tm_hour, rs->first_hours[rs->next_hours]);
 		slide_in_text(data, &data->rows[0], rs->first_hours[rs->next_hours]);

@@ -67,7 +67,7 @@ static const char* STR_PAST = "past";
 static const char* STR_HALF = "half";
 static const char* STR_AFTER = "after";
 static const char* STR_OH = "oh";
-static const char* STR_HUNDRED = "hundred";
+static const char* STR_HUNDRED = "hun-dred";
 
 static size_t append_number(char* words, int num) {
   int tens_val = num / 10 % 10;
@@ -233,14 +233,21 @@ bool hour_to_24h_word_split(int hours, char *first_word, char *second_word) {
   if (hours > 10 && hours < 20) {
     strcat(first_word, TEENS_SPLIT[(hours - 10) % 10][0]);
     strcat(second_word, TEENS_SPLIT[(hours - 10) % 10][1]);
-    return true;
+	if(strlen(second_word) == 0) {
+		return false;
+	} else {
+		return true;
+	}
   }
 
   if (hours >= 20) {
     strcat(first_word, TENS[hours / 20 + 1]);
-	if (hours % 20 > 0)
+	if (hours % 20 > 0) {
 		strcat(second_word, ONES[hours % 20]);
-    return true;
+		return true;
+	} else {
+		return false;
+	}
   }
 
   return true;
