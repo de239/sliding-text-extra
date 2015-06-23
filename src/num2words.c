@@ -226,7 +226,7 @@ bool hour_to_24h_word_split(int hours, char *first_word, char *second_word) {
   strcpy(second_word, "");
 
   if (hours < 10) {
-    strcat(second_word, ONES[hours%10]);
+    strcat(first_word, ONES[hours%10]);
     return false;
   }
 
