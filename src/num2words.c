@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
+#include <pebble.h>
 
 #include "num2words.h"
 
@@ -111,6 +113,7 @@ void fuzzy_time_to_words(int hours, int minutes, char* words) {
   time_to_common_words(fuzzy_hours, fuzzy_minutes, words);
 }
 
+/*
 // returns number of lines written
 void time_to_common_words(int hours, int minutes, char *words) {
   // TODO: make an app-safe assert
@@ -155,11 +158,11 @@ void time_to_common_words(int hours, int minutes, char *words) {
     }
   }
 }
-
+*/
 
 
 // o'clock (0) and plain number words (10..)
-void minute_to_formal_words(int minutes, bool hour24, char *first_word, char *second_word) {
+int minute_to_formal_words(int minutes, bool hour24, char *first_word, char *second_word) {
   // PBL_ASSERT(minutes >= 0 && minutes < 60, "Invalid number of minutes");
 
   strcpy(first_word, "");
@@ -172,17 +175,17 @@ void minute_to_formal_words(int minutes, bool hour24, char *first_word, char *se
       strcat(first_word, STR_OH_TICK);
       strcat(first_word, STR_CLOCK);
 	}
-    return;
+    return 1;
   }
   if (minutes < 10) {
     strcat(first_word, STR_OH);
     strcat(second_word, ONES[minutes%10]);
-    return;
+    return 2;
   }
   if (minutes > 10 && minutes < 20) {
     strcat(first_word, TEENS_SPLIT[(minutes - 10) % 10][0]);
     strcat(second_word, TEENS_SPLIT[(minutes - 10) % 10][1]);
-    return;
+    return 2;
   }
 
   strcat(first_word, TENS[minutes / 10 % 10]);
@@ -190,6 +193,9 @@ void minute_to_formal_words(int minutes, bool hour24, char *first_word, char *se
   int minute_ones = minutes % 10;
   if (minute_ones) {
     strcat(second_word, ONES[minute_ones]);
+	return 2;
+  } else {
+	  return 1;
   }
 }
 
@@ -252,3 +258,33 @@ bool hour_to_24h_word_split(int hours, char *first_word, char *second_word) {
 
   return true;
 }
+
+int time_to_24h_word(const struct tm *t, char *word[4]) {
+	int numRows = 0;
+
+	memset(word[0], 0, 32);
+	memset(word[1], 0, 32);
+	memset(word[2], 0, 32);
+	memset(word[3], 0, 32);
+
+	if (t->tm_hour < 10) {
+		strcat(word[0], ONES[t->tm_hour]);
+		numRows++;
+	} else if (t->tm_hour > 10 && t->tm_hour < 20) {
+		strcat(word[0], TEENS_SPLIT[(t->tm_hour - 10)][0]);
+		strcat(word[1], TEENS_SPLIT[(t->tm_hour - 10)][1]);
+		numRows +=2;
+	} else if (t->tm_hour >= 20) {
+		strcat(word[0], TENS[t->tm_hour / 20 + 1]);
+		numRows++;
+		if (t->tm_hour % 20 > 0) {
+			strcat(word[1], ONES[t->tm_hour % 20]);
+			numRows++;
+		}
+	}
+
+    numRows += minute_to_formal_words(t->tm_min, true, word[numRows], word[numRows+1]);
+
+	return numRows;
+}
+
