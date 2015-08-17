@@ -54,9 +54,26 @@ typedef struct {
 } SlidingTextData;
 
 SlidingTextData *s_data;
+SlidingTextData sd;
+
+static char *rows[2][4] = {
+	{
+		sd.render_state.first_hours[0],
+		sd.render_state.second_hours[0],
+		sd.render_state.first_minutes[0],
+		sd.render_state.second_minutes[0]
+	}, {
+		sd.render_state.first_hours[1],
+		sd.render_state.second_hours[1],
+		sd.render_state.first_minutes[1],
+		sd.render_state.second_minutes[1]
+	}
+};
+
+
 
 static void init_sliding_row(SlidingTextData *data, SlidingRow *row, GRect pos, GFont font,
-		GColor8 color, int delay) {
+		GColor color, int delay) {
   row->label = text_layer_create(pos);
 
   text_layer_set_background_color(row->label, GColorClear);
@@ -158,10 +175,21 @@ static void animation_update(struct Animation *animation, const AnimationProgres
 
   bool something_changed = false;
 
-  static int minutes_row;
+  int numRows, i;
 
+  if(clock_is_24h_style()) {
+    numRows = time_to_24h_word(&t, rows[rs->next_minutes]);
+
+	for(i = 0; i < numRows; i++) {
+	//	if(strcmp(
+		slide_in_text(data, &data->rows[i], rows[rs->next_minutes][i]);
+     // text_layer_set_text(data->rows[minutes_row].label, rs->first_minutes[rs->next_minutes]);
+	}
+    rs->next_hours = rs->next_hours ? 0 : 1;
+    rs->next_minutes = rs->next_minutes ? 0 : 1;
+  }
+  /*
   if (data->last_hour != t.tm_hour) {
-	if(clock_is_24h_style()) {
 		if(hour_to_24h_word_split(t.tm_hour, rs->first_hours[rs->next_hours], rs->second_hours[rs->next_hours])) {
 			slide_in_text(data, &data->rows[1], rs->second_hours[rs->next_hours]);
 			minutes_row = 2;
@@ -198,6 +226,7 @@ static void animation_update(struct Animation *animation, const AnimationProgres
     rs->next_minutes = rs->next_minutes ? 0 : 1;
     data->last_minute = t.tm_min;
   }
+  */
 
   for (size_t i = 0; i < ARRAY_LENGTH(data->rows); ++i) {
     something_changed = update_sliding_row(data, &data->rows[i]) || something_changed;
@@ -229,7 +258,7 @@ static void handle_deinit(void) {
 }
 
 static void handle_init() {
-  SlidingTextData *data = (SlidingTextData*)malloc(sizeof(SlidingTextData));
+  SlidingTextData *data = &sd;
   s_data = data;
 
   data->render_state.next_hours = 0;
@@ -252,7 +281,7 @@ static void handle_init() {
   init_sliding_row(data, &data->rows[0], GRect(0, 0, width, 60), data->bitham42_bold, GColorWhite, 6);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[0].label));
 
-  init_sliding_row(data, &data->rows[1], GRect(0, 34, width, 96), data->bitham42_light, GColorBrilliantRose, 3);
+  init_sliding_row(data, &data->rows[1], GRect(0, 34, width, 96), data->bitham42_light, COLOR_FALLBACK(GColorBrilliantRose, GColorWhite), 3);
   layer_add_child(window_layer, text_layer_get_layer(data->rows[1].label));
 
   init_sliding_row(data, &data->rows[2], GRect(0, 72, width, 132), data->bitham42_light, GColorWhite, 0);
